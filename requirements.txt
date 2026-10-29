@@ -1,0 +1,7 @@
+# Python dependencies. The Tesseract OCR *binary* must be installed separately (see README).
+pytesseract>=0.3.10
+Pillow>=9.1
+phonenumbers>=8.13
+
+# Tests
+pytest>=7.0

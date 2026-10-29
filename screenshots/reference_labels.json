@@ -1,0 +1,42 @@
+{
+  "reference_chats_list.jpg": {
+    "screen_type": "CHATS_LIST",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 2,
+    "candidate_locations": ["CONTACT_ROW", "CONTACT_ROW"]
+  },
+  "reference_chat_detail.jpg": {
+    "screen_type": "CHAT_DETAIL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 1,
+    "candidate_locations": ["MESSAGE_AREA"]
+  },
+  "reference_contact_info.jpg": {
+    "screen_type": "CONTACT_INFO",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 1,
+    "candidate_locations": ["CONTACT_DETAILS"]
+  },
+  "reference_send_contact.jpg": {
+    "screen_type": "SEND_CONTACT",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 1,
+    "candidate_locations": ["CONTACT_DETAILS"]
+  },
+  "TEST7.jpeg": {
+    "screen_type": "CHAT_DETAIL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 2
+  },
+  "TEST8.jpeg": {
+    "screen_type": "CHAT_DETAIL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 3
+  }
+}

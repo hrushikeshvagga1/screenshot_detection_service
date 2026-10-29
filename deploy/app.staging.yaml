@@ -1,0 +1,47 @@
+# Optional: DigitalOcean App Platform — Worker component (managed, no Droplet SSH).
+# Apply via: doctl apps create --spec deploy/app.staging.yaml
+# Or paste into Control Panel → Apps → Create → Worker.
+#
+# Adjust: region, instance size, GitHub repo, secrets in DO dashboard.
+
+name: screenshot-worker-staging
+region: blr
+
+workers:
+  - name: screenshot-analysis
+    dockerfile_path: Dockerfile
+    source_dir: whatsapp_screenshot_poc
+    github:
+      repo: YOUR_ORG/YOUR_REPO
+      branch: main
+      deploy_on_push: true
+    instance_count: 1
+    instance_size_slug: professional-s
+    envs:
+      - key: MONGODB_URI
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_BUCKET
+        scope: RUN_TIME
+        value: your-staging-space
+      - key: SPACES_ENDPOINT
+        scope: RUN_TIME
+        value: https://blr1.digitaloceanspaces.com
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: MONGO_BATCHES_COLLECTION
+        scope: RUN_TIME
+        value: screenshot_batches
+      - key: MONGO_RESULTS_COLLECTION
+        scope: RUN_TIME
+        value: screenshot_analysis_results
+      - key: POLL_INTERVAL_SEC
+        scope: RUN_TIME
+        value: "3"
+      - key: PHONE_REGION
+        scope: RUN_TIME
+        value: IN

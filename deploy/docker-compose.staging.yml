@@ -1,0 +1,24 @@
+# Staging on a DigitalOcean Droplet (same VPC/region as Spaces + Mongo when possible).
+# Usage (from whatsapp_screenshot_poc/):
+#   docker compose -f deploy/docker-compose.staging.yml --env-file .env.staging up -d --build
+
+services:
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: screenshot-analysis-worker
+    restart: unless-stopped
+    env_file:
+      - ../.env.staging
+    # OCR is CPU-bound; avoid oversubscribing on small droplets
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"

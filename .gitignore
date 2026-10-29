@@ -1,0 +1,8 @@
+.env.staging
+.env.production
+.venv/
+__pycache__/
+.pytest_cache/
+# Results and debug artifacts may contain personal data.
+output/*
+!output/.gitkeep
