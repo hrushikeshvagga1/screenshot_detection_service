@@ -38,7 +38,14 @@ class RedisQueue:
 
         if not settings.redis_url:
             raise RuntimeError("REDIS_URL is required for QUEUE_BACKEND=redis")
-        self._client = redis.from_url(settings.redis_url, decode_responses=True)
+        block_sec = max(1, settings.queue_receive_wait_seconds)
+        # BRPOP blocks on the server; socket read timeout must exceed that wait or redis-py raises.
+        self._client = redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=30,
+            socket_timeout=block_sec + 15,
+        )
         self._queue_key = settings.redis_queue_key
         self._processing_key = f"{self._queue_key}:processing"
 
@@ -47,7 +54,14 @@ class RedisQueue:
         logger.debug("Published batch job to Redis queue %s", self._queue_key)
 
     def receive(self, wait_seconds: int) -> Optional[ReceivedMessage]:
-        item = self._client.brpop(self._queue_key, timeout=max(1, wait_seconds))
+        import redis
+
+        timeout = max(1, wait_seconds)
+        try:
+            item = self._client.brpop(self._queue_key, timeout=timeout)
+        except redis.exceptions.TimeoutError:
+            # Idle queue: treat as no message (do not crash the worker loop).
+            return None
         if not item:
             return None
         _, raw = item
