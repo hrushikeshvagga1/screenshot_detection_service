@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
+from bson import ObjectId
+from bson.errors import InvalidId
 from pymongo import ASCENDING, MongoClient, ReturnDocument
 from pymongo.collection import Collection
 from pymongo.database import Database
@@ -84,6 +86,49 @@ class BatchStore:
             return_document=ReturnDocument.AFTER,
         )
         return doc
+
+    @staticmethod
+    def _parse_batch_id(batch_id: Union[str, ObjectId]) -> Union[ObjectId, str]:
+        if isinstance(batch_id, ObjectId):
+            return batch_id
+        try:
+            return ObjectId(batch_id)
+        except (InvalidId, TypeError):
+            return batch_id
+
+    ClaimOutcome = Literal["claimed", "already_done", "in_progress", "missing", "not_claimable"]
+
+    def claim_batch_by_id(self, batch_id: Union[str, ObjectId]) -> Tuple[ClaimOutcome, Optional[Dict[str, Any]]]:
+        """Claim a batch referenced by a queue message (idempotent for duplicates)."""
+        oid = self._parse_batch_id(batch_id)
+        existing = self.batches.find_one({"_id": oid})
+        if existing is None:
+            return "missing", None
+        if existing.get("status") in (STATUS_COMPLETED, STATUS_PARTIAL_FAILED, STATUS_FAILED):
+            return "already_done", None
+        if existing.get("status") == STATUS_PROCESSING:
+            return "in_progress", None
+        if existing.get("status") != STATUS_PENDING:
+            return "not_claimable", None
+        if int(existing.get("claim", {}).get("attempts", 0)) >= self._settings.max_batch_attempts:
+            return "not_claimable", None
+
+        now = utcnow()
+        doc = self.batches.find_one_and_update(
+            {"_id": oid, "status": STATUS_PENDING},
+            {
+                "$set": {
+                    "status": STATUS_PROCESSING,
+                    "claim.workerId": self._settings.worker_id,
+                    "claim.claimedAt": now,
+                },
+                "$inc": {"claim.attempts": 1},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        if doc is None:
+            return "in_progress", None
+        return "claimed", doc
 
     def mark_batch_finished(self, batch_id: Any, failed_items: int, total: int) -> None:
         if failed_items == 0:

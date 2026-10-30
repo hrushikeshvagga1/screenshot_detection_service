@@ -1,5 +1,6 @@
 # Worker runtime (install in addition to requirements.txt)
 pymongo>=4.6
+redis>=5.0
 boto3>=1.34
 # Optional: only if STORAGE uses GCS instead of DigitalOcean Spaces
 google-cloud-storage>=2.14

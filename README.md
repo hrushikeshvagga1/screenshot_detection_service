@@ -45,19 +45,20 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Batch worker (Mongo tick)
+## Batch worker (queue + Mongo)
 
-| Environment | Guide |
-|-------------|--------|
-| **Staging (DigitalOcean)** | **[deploy/DigitalOcean-staging.md](deploy/DigitalOcean-staging.md)** — Droplet + Docker Compose, Spaces, Mongo |
-| **Production (AWS, later)** | [deploy/aws-production.md](deploy/aws-production.md) |
-| GCP + Spaces (optional) | [deploy/GCP.md](deploy/GCP.md) |
+| Environment | Queue | Guide |
+|-------------|-------|--------|
+| **Start here** | Redis / SQS | **[deploy/QUEUE-FROM-SCRATCH.md](deploy/QUEUE-FROM-SCRATCH.md)** |
+| **Staging (DO)** | Managed Redis | [deploy/DigitalOcean-staging.md](deploy/DigitalOcean-staging.md) |
+| **Production (AWS)** | SQS | [deploy/aws-production.md](deploy/aws-production.md) |
 
-Install worker deps: `pip install -r requirements-worker.txt`  
-Run locally: `MONGODB_URI=... LOCAL_STORAGE_ROOT=./screenshots python -m worker.run`  
+Install worker deps: `pip install -r requirements.txt -r requirements-worker.txt`  
+Run consumer: `python -m worker.run_queue`  
+Reconcile stuck batches: `python -m worker.reconcile`  
 
-Staging on DO: copy `deploy/env.staging.example` → `.env.staging`, then  
-`docker compose -f deploy/docker-compose.staging.yml --env-file .env.staging up -d --build`
+Staging: copy `deploy/env.staging.example` → `.env.staging`, then  
+`docker compose -f deploy/docker-compose.staging.yml up -d --build`
 
 ## Running
 

@@ -29,6 +29,14 @@ class Settings:
     max_batch_attempts: int
     worker_id: str
     phone_region: str
+    queue_backend: str
+    redis_url: str | None
+    redis_queue_key: str
+    sqs_queue_url: str | None
+    sqs_wait_time_seconds: int
+    aws_region: str
+    queue_receive_wait_seconds: int
+    reconcile_batch_limit: int
 
     @property
     def spaces_configured(self) -> bool:
@@ -69,6 +77,14 @@ class Settings:
                 "SPACES_BUCKET is set but SPACES_ENDPOINT and/or credentials are missing"
             )
 
+        queue_backend = (_env("QUEUE_BACKEND", "redis") or "redis").lower()
+        redis_url = _env("REDIS_URL")
+        sqs_url = _env("SQS_QUEUE_URL")
+        if queue_backend == "redis" and not redis_url:
+            raise RuntimeError("QUEUE_BACKEND=redis requires REDIS_URL")
+        if queue_backend == "sqs" and not sqs_url:
+            raise RuntimeError("QUEUE_BACKEND=sqs requires SQS_QUEUE_URL")
+
         return cls(
             mongodb_uri=uri,
             batches_collection=_env("MONGO_BATCHES_COLLECTION", "screenshot_batches") or "screenshot_batches",
@@ -85,4 +101,12 @@ class Settings:
             max_batch_attempts=int(_env("MAX_BATCH_ATTEMPTS", "5") or "5"),
             worker_id=_env("WORKER_ID") or socket.gethostname(),
             phone_region=_env("PHONE_REGION", "IN") or "IN",
+            queue_backend=queue_backend,
+            redis_url=redis_url,
+            redis_queue_key=_env("REDIS_QUEUE_KEY", "screenshot:batch:jobs") or "screenshot:batch:jobs",
+            sqs_queue_url=sqs_url,
+            sqs_wait_time_seconds=int(_env("SQS_WAIT_TIME_SECONDS", "20") or "20"),
+            aws_region=_env("AWS_REGION", "ap-south-1") or "ap-south-1",
+            queue_receive_wait_seconds=int(_env("QUEUE_RECEIVE_WAIT_SECONDS", "20") or "20"),
+            reconcile_batch_limit=int(_env("RECONCILE_BATCH_LIMIT", "500") or "500"),
         )

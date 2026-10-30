@@ -14,5 +14,5 @@ COPY config.py main.py ocr_engine.py phone_detector.py screen_classifier.py deci
 COPY worker/ ./worker/
 
 ENV PYTHONUNBUFFERED=1
-# Long-running poll loop (one process per container)
-CMD ["python", "-m", "worker.run"]
+# Queue consumer (Redis staging / SQS production)
+CMD ["python", "-m", "worker.run_queue"]
