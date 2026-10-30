@@ -110,9 +110,19 @@ def _spaces_read(settings: Settings, bucket: str, key: str) -> bytes:
         config=Config(signature_version="s3v4"),
         region_name="us-east-1",
     )
-    logger.debug("Downloading s3://%s/%s via %s", bucket, key, settings.spaces_endpoint)
-    response = client.get_object(Bucket=bucket, Key=key)
-    return response["Body"].read()
+    target = f"s3://{bucket}/{key}"
+    logger.info("Spaces GetObject %s endpoint=%s", target, settings.spaces_endpoint)
+    try:
+        response = client.get_object(Bucket=bucket, Key=key)
+        return response["Body"].read()
+    except Exception as exc:
+        logger.error(
+            "Spaces GetObject failed %s endpoint=%s error=%s",
+            target,
+            settings.spaces_endpoint,
+            exc,
+        )
+        raise
 
 
 def _gcs_read(bucket: str, blob_name: str) -> bytes:

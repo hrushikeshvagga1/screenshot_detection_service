@@ -1,4 +1,9 @@
-"""Map device / ingest batch documents to worker item fields."""
+"""Map device / ingest batch documents to worker item fields.
+
+Ingest may label object location as gcsBucket + gcsPath (historical naming).
+Staging/production here use DigitalOcean Spaces only: those fields are mapped to
+s3://bucket/key and downloaded via boto3 + SPACES_* env — not Google Cloud Storage.
+"""
 
 from __future__ import annotations
 
@@ -20,8 +25,10 @@ def item_id(item: Dict[str, Any]) -> str:
 
 
 def item_storage_key(item: Dict[str, Any]) -> str:
+    """Resolve object location for Spaces (S3-compatible), regardless of field names."""
     if item.get("storageKey"):
         return str(item["storageKey"]).strip()
+    # gcsBucket/gcsPath = Spaces bucket + object key in this product (not GCS API).
     bucket = item.get("gcsBucket") or item.get("bucket")
     path = item.get("gcsPath") or item.get("path")
     if bucket and path:
