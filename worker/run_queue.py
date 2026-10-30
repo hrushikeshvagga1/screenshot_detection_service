@@ -26,7 +26,12 @@ def _handle_message(store: BatchStore, settings: Settings, received: ReceivedMes
     outcome, batch = store.claim_batch_by_id(batch_id)
 
     if outcome == "missing":
-        logger.error("Queue message references missing batch id=%s — acking to drop", batch_id)
+        logger.error(
+            "Queue message references missing batch id=%s (db=%s collection=%s) — acking to drop",
+            batch_id,
+            store._db.name,
+            store.batches.name,
+        )
         queue.ack(received)
         return
     if outcome == "already_done":
