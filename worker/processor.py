@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from main import analyze, build_result
 
+from worker.ingest_schema import batch_user_id, item_captured_at, item_id, item_storage_key, should_process_item
 from worker.mongo_store import BatchStore, ITEM_COMPLETED, ITEM_FAILED, summarize_result, utcnow
 from worker.settings import Settings
 from worker.storage import download_to_temp
@@ -24,8 +25,8 @@ def process_item(
 ) -> bool:
     """Process one item. Returns True if failed."""
     batch_id = batch["_id"]
-    item_id = str(item["itemId"])
-    storage_key = item["storageKey"]
+    iid = item_id(item)
+    storage_key = item_storage_key(item)
     tmp: Path | None = None
     started = time.perf_counter()
     try:
@@ -35,11 +36,12 @@ def process_item(
         elapsed_ms = int((time.perf_counter() - started) * 1000)
         doc = {
             "batchId": batch_id,
-            "itemId": item_id,
+            "itemId": iid,
             "deviceId": batch.get("deviceId"),
-            "userId": batch.get("userId"),
+            "userId": batch_user_id(batch),
+            "deviceBatchId": batch.get("deviceBatchId"),
             "storageKey": storage_key,
-            "capturedAt": item.get("capturedAt"),
+            "capturedAt": item_captured_at(item),
             "processedAt": utcnow(),
             "processingMs": elapsed_ms,
             "status": "COMPLETED",
@@ -48,12 +50,12 @@ def process_item(
             "error": None,
         }
         store.upsert_result(doc)
-        store.set_item_status(batch_id, item_id, ITEM_COMPLETED)
+        store.set_item_status(batch_id, iid, ITEM_COMPLETED)
         analysis = doc["analysis"]
         logger.info(
             "Item done batch=%s item=%s screen=%s alert=%s reason=%s ms=%d",
             batch_id,
-            item_id,
+            iid,
             analysis.get("screenType"),
             analysis.get("alert"),
             analysis.get("reasonCode"),
@@ -62,15 +64,16 @@ def process_item(
         return False
     except Exception as exc:
         elapsed_ms = int((time.perf_counter() - started) * 1000)
-        logger.exception("Item failed batch=%s item=%s", batch_id, item_id)
+        logger.exception("Item failed batch=%s item=%s", batch_id, iid)
         store.upsert_result(
             {
                 "batchId": batch_id,
-                "itemId": item_id,
+                "itemId": iid,
                 "deviceId": batch.get("deviceId"),
-                "userId": batch.get("userId"),
+                "userId": batch_user_id(batch),
+                "deviceBatchId": batch.get("deviceBatchId"),
                 "storageKey": storage_key,
-                "capturedAt": item.get("capturedAt"),
+                "capturedAt": item_captured_at(item),
                 "processedAt": utcnow(),
                 "processingMs": elapsed_ms,
                 "status": "FAILED",
@@ -79,7 +82,7 @@ def process_item(
                 "error": {"type": type(exc).__name__, "message": str(exc)},
             }
         )
-        store.set_item_status(batch_id, item_id, ITEM_FAILED)
+        store.set_item_status(batch_id, iid, ITEM_FAILED)
         return True
     finally:
         if tmp is not None:
@@ -90,7 +93,7 @@ def process_batch(store: BatchStore, settings: Settings, batch: Dict[str, Any]) 
     items = batch.get("items") or []
     failed = 0
     for item in items:
-        if item.get("status") not in (None, "PENDING", ITEM_FAILED):
+        if not should_process_item(item):
             continue
         if process_item(store, settings, batch, item):
             failed += 1

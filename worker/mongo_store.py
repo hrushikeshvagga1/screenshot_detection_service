@@ -150,10 +150,11 @@ class BatchStore:
         )
 
     def set_item_status(self, batch_id: Any, item_id: str, status: str) -> None:
-        self.batches.update_one(
-            {"_id": batch_id, "items.itemId": item_id},
-            {"$set": {"items.$.status": status}},
-        )
+        update = {"$set": {"items.$.status": status, "items.$.analysisStatus": status}}
+        for field in ("itemId", "jobId", "clientId"):
+            result = self.batches.update_one({"_id": batch_id, f"items.{field}": item_id}, update)
+            if result.modified_count:
+                return
 
     def upsert_result(self, document: Dict[str, Any]) -> None:
         self.results.update_one(

@@ -19,7 +19,15 @@ def main() -> int:
     store = BatchStore(settings)
     queue = create_queue(settings)
     limit = settings.reconcile_batch_limit
-    cursor = store.batches.find({"status": STATUS_PENDING}).sort("receivedAt", 1).limit(limit)
+    pending_filter = {"status": {"$in": [STATUS_PENDING, "pending", "Pending"]}}
+    pending = store.batches.count_documents(pending_filter)
+    logger.info(
+        "Reconcile scan db=%s collection=%s pending=%d",
+        store._db.name,
+        store.batches.name,
+        pending,
+    )
+    cursor = store.batches.find(pending_filter).sort("receivedAt", 1).limit(limit)
     count = 0
     for doc in cursor:
         queue.publish(BatchJobMessage.for_batch(doc["_id"], source="reconcile"))
