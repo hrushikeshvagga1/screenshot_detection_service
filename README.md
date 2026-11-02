@@ -49,9 +49,10 @@ pip install -r requirements.txt
 
 | Environment | Queue | Guide |
 |-------------|-------|--------|
-| **Start here** | Redis / SQS | **[deploy/QUEUE-FROM-SCRATCH.md](deploy/QUEUE-FROM-SCRATCH.md)** |
-| **Staging (DO)** | Managed Redis | [deploy/DigitalOcean-staging.md](deploy/DigitalOcean-staging.md) |
-| **Production (AWS)** | SQS | [deploy/aws-production.md](deploy/aws-production.md) |
+| **Rebuild staging from zero** | Valkey on DO | **[deploy/SETUP-FROM-SCRATCH.md](deploy/SETUP-FROM-SCRATCH.md)** |
+| Queue design + AWS | Valkey / SQS | [deploy/QUEUE-FROM-SCRATCH.md](deploy/QUEUE-FROM-SCRATCH.md) |
+| Staging (DO) overview | Valkey | [deploy/DigitalOcean-staging.md](deploy/DigitalOcean-staging.md) |
+| Production (AWS) | SQS | [deploy/aws-production.md](deploy/aws-production.md) |
 
 Install worker deps: `pip install -r requirements.txt -r requirements-worker.txt`  
 Run consumer: `python -m worker.run_queue`  
