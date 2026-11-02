@@ -10,8 +10,8 @@ import os
 # ---------------------------------------------------------------------------
 # Input validation
 # ---------------------------------------------------------------------------
-SUPPORTED_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg")
-SUPPORTED_IMAGE_FORMATS = ("PNG", "JPEG")
+SUPPORTED_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
+SUPPORTED_IMAGE_FORMATS = ("PNG", "JPEG", "WEBP")
 MIN_IMAGE_SIDE_PX = 100
 
 # ---------------------------------------------------------------------------

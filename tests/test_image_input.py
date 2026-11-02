@@ -21,6 +21,12 @@ def test_valid_png_and_jpeg_accepted(tmp_path):
     assert load_and_validate_image(str(jpg))[1] == "JPEG"
 
 
+def test_valid_webp_accepted(tmp_path):
+    path = tmp_path / "shot.webp"
+    Image.new("RGB", (200, 400), "white").save(path, format="WEBP")
+    assert load_and_validate_image(str(path))[1] == "WEBP"
+
+
 def test_missing_file(tmp_path):
     with pytest.raises(ImageValidationError, match="not found"):
         load_and_validate_image(str(tmp_path / "nope.png"))
