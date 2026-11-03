@@ -49,6 +49,7 @@ pip install -r requirements.txt
 
 | Environment | Queue | Guide |
 |-------------|-------|--------|
+| **Backend (NestJS) ingest + queue** | Valkey LPUSH | **[deploy/BACKEND-INTEGRATION.md](deploy/BACKEND-INTEGRATION.md)** |
 | **Rebuild staging from zero** | Valkey on DO | **[deploy/SETUP-FROM-SCRATCH.md](deploy/SETUP-FROM-SCRATCH.md)** |
 | Queue design + AWS | Valkey / SQS | [deploy/QUEUE-FROM-SCRATCH.md](deploy/QUEUE-FROM-SCRATCH.md) |
 | Staging (DO) overview | Valkey | [deploy/DigitalOcean-staging.md](deploy/DigitalOcean-staging.md) |

@@ -230,6 +230,8 @@ Expect `True`.
 
 After each batch insert, ingest **must** publish a queue message (worker does **not** scan Mongo for new work).
 
+**NestJS / backend team:** see **[BACKEND-INTEGRATION.md](BACKEND-INTEGRATION.md)** (LPUSH contract, env vars, reading `screenshot_analysis_results`).
+
 **Message JSON:**
 
 ```json
