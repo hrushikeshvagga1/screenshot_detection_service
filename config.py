@@ -109,16 +109,44 @@ SCREEN_FEATURE_WEIGHTS = {
         "phone_in_share_contact_list": 1.5,
         "share_contact_name_row": 1.0,
     },
+    "LINK_DEVICE_QR": {
+        "linked_devices_title": 4.0,
+        "link_device_cta": 3.5,
+        "use_other_devices_copy": 2.5,
+        "scan_qr_prompt": 3.0,
+        "linked_devices_encryption_footer": 1.0,
+    },
+    "LINK_DEVICE_CODE": {
+        "enter_code_title": 4.0,
+        "link_with_phone_number_copy": 3.0,
+        "code_entry_disclaimer": 2.5,
+    },
 }
 
 # Features that argue against a screen type.
 SCREEN_FEATURE_PENALTIES = {
-    "CHATS_LIST": {"message_composer": 2.0, "contact_settings_labels": 1.5, "send_contact_header": 2.0},
-    "CHAT_DETAIL": {
-        "conversation_rows": 1.5, "contact_settings_labels": 1.5, "filter_chips": 1.0,
-        "send_contact_header": 2.5,
+    "CHATS_LIST": {
+        "message_composer": 2.0,
+        "contact_settings_labels": 1.5,
+        "send_contact_header": 2.0,
+        "linked_devices_title": 2.0,
+        "enter_code_title": 2.5,
     },
-    "CONTACT_INFO": {"message_composer": 2.0, "conversation_rows": 1.5, "send_contact_header": 2.5},
+    "CHAT_DETAIL": {
+        "conversation_rows": 1.5,
+        "contact_settings_labels": 1.5,
+        "filter_chips": 1.0,
+        "send_contact_header": 2.5,
+        "linked_devices_title": 2.0,
+        "enter_code_title": 2.5,
+    },
+    "CONTACT_INFO": {
+        "message_composer": 2.0,
+        "conversation_rows": 1.5,
+        "send_contact_header": 2.5,
+        "linked_devices_title": 2.0,
+        "enter_code_title": 2.5,
+    },
     "SEND_CONTACT": {
         "message_composer": 2.0,
         "conversation_rows": 2.0,
@@ -126,6 +154,22 @@ SCREEN_FEATURE_PENALTIES = {
         "filter_chips": 2.0,
         "bottom_navigation": 2.0,
         "profile_action_buttons": 1.5,
+        "linked_devices_title": 2.0,
+        "enter_code_title": 2.5,
+    },
+    "LINK_DEVICE_QR": {
+        "message_composer": 2.5,
+        "conversation_rows": 2.0,
+        "bottom_navigation": 2.0,
+        "enter_code_title": 3.0,
+        "filter_chips": 2.0,
+    },
+    "LINK_DEVICE_CODE": {
+        "bottom_navigation": 2.0,
+        "conversation_rows": 2.0,
+        "linked_devices_title": 3.0,
+        "link_device_cta": 3.0,
+        "send_contact_header": 2.0,
     },
 }
 
@@ -233,6 +277,33 @@ FEATURE_PARAMS = {
         "keywords": ("photo", "video", "gif", "sticker", "document", "audio"),
         "min_y": 0.14, "max_y": 0.88,
     },
+    "linked_devices_title": {"phrases": ("linked devices",), "max_y": 0.18, "min_x": 0.0},
+    "link_device_cta": {"phrases": ("link a device",), "min_y": 0.70, "max_y": 0.96},
+    "use_other_devices_copy": {
+        "phrases": ("use whatsapp on other devices", "use whatsapp on other device"),
+        "min_y": 0.20,
+        "max_y": 0.55,
+    },
+    "scan_qr_prompt": {
+        "phrases": ("scan qr code", "scan the qr code", "point your phone", "scan code"),
+        "min_y": 0.10,
+        "max_y": 0.70,
+    },
+    "linked_devices_encryption_footer": {
+        "phrases": ("your personal messages are end to end encrypted",),
+        "min_y": 0.82,
+    },
+    "enter_code_title": {"phrases": ("enter code",), "max_y": 0.16, "min_x": 0.0},
+    "link_with_phone_number_copy": {
+        "phrases": ("link with phone number", "click link with phone number"),
+        "min_y": 0.14,
+        "max_y": 0.45,
+    },
+    "code_entry_disclaimer": {
+        "phrases": ("didn't request it", "did not request it", "never enter a code"),
+        "min_y": 0.30,
+        "max_y": 0.65,
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -261,6 +332,8 @@ LOCATION_RULES = {
         "header_max_y": 0.12,
         "details_max_y": 0.55,           # selectable number rows sit below the contact name
     },
+    "LINK_DEVICE_QR": {},
+    "LINK_DEVICE_CODE": {},
 }
 
 # ---------------------------------------------------------------------------
@@ -272,6 +345,23 @@ PROHIBITED_LOCATIONS = {
     "CHAT_DETAIL": ("TOP_HEADER", "MESSAGE_AREA"),
     "CONTACT_INFO": ("CONTACT_DETAILS",),
     "SEND_CONTACT": ("CONTACT_DETAILS",),
+    "LINK_DEVICE_QR": (),
+    "LINK_DEVICE_CODE": (),
+}
+# Severity policy (see decision_engine.py)
+SEVERITY_CRITICAL = "CRITICAL"
+SEVERITY_HIGH = "HIGH"
+SEVERITY_MEDIUM = "MEDIUM"
+SEVERITY_LOW = "LOW"
+SEVERITY_NONE = "NONE"
+# Critical from screen type alone (no phone number required).
+CRITICAL_SCREEN_TYPES = ("LINK_DEVICE_QR", "LINK_DEVICE_CODE", "CONTACT_INFO")
+# High when a policy-eligible phone appears in a prohibited area on these screens.
+HIGH_PHONE_SCREEN_TYPES = ("CHATS_LIST", "CHAT_DETAIL", "SEND_CONTACT")
+CRITICAL_SCREEN_REASON_CODES = {
+    "LINK_DEVICE_QR": "SENSITIVE_SCREEN_LINK_DEVICE_QR",
+    "LINK_DEVICE_CODE": "SENSITIVE_SCREEN_LINK_DEVICE_CODE",
+    "CONTACT_INFO": "SENSITIVE_SCREEN_CONTACT_INFO",
 }
 ALERT_REASON_CODES = {
     "CHATS_LIST": "PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW",

@@ -1,6 +1,7 @@
 {
   "reference_chats_list.jpg": {
     "screen_type": "CHATS_LIST",
+    "severity": "HIGH",
     "alert": true,
     "review_required": false,
     "min_candidates": 2,
@@ -8,6 +9,7 @@
   },
   "reference_chat_detail.jpg": {
     "screen_type": "CHAT_DETAIL",
+    "severity": "HIGH",
     "alert": true,
     "review_required": false,
     "min_candidates": 1,
@@ -15,6 +17,7 @@
   },
   "reference_contact_info.jpg": {
     "screen_type": "CONTACT_INFO",
+    "severity": "CRITICAL",
     "alert": true,
     "review_required": false,
     "min_candidates": 1,
@@ -22,19 +25,36 @@
   },
   "reference_send_contact.jpg": {
     "screen_type": "SEND_CONTACT",
+    "severity": "HIGH",
     "alert": true,
     "review_required": false,
     "min_candidates": 1,
     "candidate_locations": ["CONTACT_DETAILS"]
   },
+  "reference_link_device_qr.jpg": {
+    "screen_type": "LINK_DEVICE_QR",
+    "severity": "CRITICAL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 0
+  },
+  "reference_link_device_code.jpg": {
+    "screen_type": "LINK_DEVICE_CODE",
+    "severity": "CRITICAL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 0
+  },
   "TEST7.jpeg": {
     "screen_type": "CHAT_DETAIL",
+    "severity": "HIGH",
     "alert": true,
     "review_required": false,
     "min_candidates": 2
   },
   "TEST8.jpeg": {
     "screen_type": "CHAT_DETAIL",
+    "severity": "HIGH",
     "alert": true,
     "review_required": false,
     "min_candidates": 3

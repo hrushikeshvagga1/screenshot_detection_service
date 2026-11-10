@@ -3,12 +3,13 @@ import pytest
 import config
 from phone_detector import detect_phone_numbers
 from screen_classifier import (
-    CHAT_DETAIL, CHATS_LIST, CONTACT_INFO, LOC_BOTTOM_COMPOSER, LOC_CONTACT_DETAILS, LOC_CONTACT_ROW,
-    LOC_MESSAGE_AREA, LOC_TOP_HEADER, LOC_UNKNOWN, SEND_CONTACT, UNKNOWN, assign_locations, classify_screen,
+    CHAT_DETAIL, CHATS_LIST, CONTACT_INFO, LINK_DEVICE_CODE, LINK_DEVICE_QR, LOC_BOTTOM_COMPOSER,
+    LOC_CONTACT_DETAILS, LOC_CONTACT_ROW, LOC_MESSAGE_AREA, LOC_TOP_HEADER, LOC_UNKNOWN, SEND_CONTACT, UNKNOWN,
+    assign_locations, classify_screen,
 )
 from tests.helpers import (
-    chat_detail_words, chats_list_words, contact_info_words, make_ocr, phone_words,
-    send_contact_words,
+    chat_detail_words, chats_list_words, contact_info_words, link_device_code_words, link_device_qr_words,
+    make_ocr, phone_words, send_contact_words,
 )
 
 RESOLUTIONS = [None, (1080, 2400), (720, 1600)]
@@ -137,3 +138,17 @@ def test_low_confidence_words_ignored_for_keywords():
 def test_single_keyword_is_not_enough():
     result, _ = _run([("Notifications", 88, 682, 113, 17, 0.95), ("Message", 67, 917, 89, 29, 0.95)])
     assert result.screen_type == UNKNOWN
+
+
+def test_link_device_qr_classified():
+    result, _ = _run(link_device_qr_words())
+    assert result.screen_type == LINK_DEVICE_QR
+    assert result.confidence >= config.SCREEN_CONFIDENCE_THRESHOLD
+    assert "linked devices" in result.recognized_keywords
+
+
+def test_link_device_code_classified():
+    result, _ = _run(link_device_code_words())
+    assert result.screen_type == LINK_DEVICE_CODE
+    assert result.confidence >= config.SCREEN_CONFIDENCE_THRESHOLD
+    assert "enter code" in result.recognized_keywords

@@ -1,6 +1,7 @@
-"""Business rules: turn OCR, phone candidates and screen classification into an alert decision.
+"""Business rules: turn OCR, phone candidates and screen classification into severity decisions.
 
-An alert means "investigate this screenshot"; it does not prove a privacy violation.
+Severity replaces a single boolean alert for production integrations. ``alert`` is
+kept for backward compatibility: True when severity is CRITICAL or HIGH.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from screen_classifier import UNKNOWN, ClassificationResult
 
 @dataclass
 class Decision:
+    severity: str
     alert: bool
     review_required: bool
     reason_code: str
@@ -25,6 +27,7 @@ class Decision:
 
     def to_dict(self) -> Dict[str, object]:
         return {
+            "severity": self.severity,
             "alert": self.alert,
             "review_required": self.review_required,
             "reason_code": self.reason_code,
@@ -50,6 +53,36 @@ def _alert_eligible(candidate: PhoneCandidate) -> bool:
     if config.ALERT_REQUIRES_CONFIDENT_OCR and candidate.low_ocr_confidence:
         return False
     return True
+
+
+def _severity_to_alert(severity: str) -> bool:
+    return severity in (config.SEVERITY_CRITICAL, config.SEVERITY_HIGH)
+
+
+def _critical_decision(
+    screen: str,
+    classification: ClassificationResult,
+    candidates: Sequence[PhoneCandidate],
+    uncertainties: List[str],
+) -> Decision:
+    reason = config.CRITICAL_SCREEN_REASON_CODES.get(screen, "SENSITIVE_SCREEN_DETECTED")
+    phone_note = ""
+    ids: List[int] = []
+    if candidates:
+        ids = [c.candidate_id for c in candidates]
+        phone_note = f" Also detected {len(candidates)} phone-number candidate(s)."
+    return Decision(
+        severity=config.SEVERITY_CRITICAL,
+        alert=True,
+        review_required=False,
+        reason_code=reason,
+        explanation=(
+            f"Classified as {screen} (confidence {classification.confidence:.2f}). "
+            f"This screen type is treated as critical regardless of visible phone numbers.{phone_note}"
+        ),
+        triggering_candidate_ids=ids,
+        uncertainties=uncertainties,
+    )
 
 
 def _collect_uncertainties(
@@ -80,6 +113,7 @@ def decide(
 
     if not ocr.success:
         return Decision(
+            severity=config.SEVERITY_NONE,
             alert=False,
             review_required=config.REVIEW_ON_OCR_FAILURE,
             reason_code="OCR_FAILED",
@@ -87,9 +121,15 @@ def decide(
             uncertainties=uncertainties,
         )
 
+    screen = classification.screen_type
+
+    if screen in config.CRITICAL_SCREEN_TYPES and screen != UNKNOWN:
+        return _critical_decision(screen, classification, candidates, uncertainties)
+
     if not candidates:
         if not ocr.reliable:
             return Decision(
+                severity=config.SEVERITY_NONE,
                 alert=False,
                 review_required=config.REVIEW_ON_UNRELIABLE_OCR_WITHOUT_CANDIDATES,
                 reason_code="NO_PHONE_NUMBER_DETECTED_LOW_OCR_QUALITY",
@@ -97,6 +137,7 @@ def decide(
                 uncertainties=uncertainties,
             )
         return Decision(
+            severity=config.SEVERITY_NONE,
             alert=False,
             review_required=False,
             reason_code="NO_PHONE_NUMBER_DETECTED",
@@ -104,15 +145,15 @@ def decide(
             uncertainties=uncertainties,
         )
 
-    screen = classification.screen_type
     if screen == UNKNOWN:
         return Decision(
+            severity=config.SEVERITY_LOW,
             alert=False,
             review_required=config.REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE,
             reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
             explanation=(
                 f"{len(candidates)} phone-number candidate(s) found, but the screen type could not be "
-                "determined reliably, so the location cannot be judged. Manual review is required."
+                "determined reliably (low severity)."
             ),
             triggering_candidate_ids=[c.candidate_id for c in candidates],
             uncertainties=uncertainties,
@@ -123,18 +164,19 @@ def decide(
     eligible = [c for c in in_prohibited if _alert_eligible(c)]
     areas = ", ".join(sorted(prohibited)) or "none"
 
-    if eligible:
+    if eligible and screen in config.HIGH_PHONE_SCREEN_TYPES:
         if screen == "CHAT_DETAIL":
             reason_code = _chat_detail_reason_code(eligible)
         else:
             reason_code = config.ALERT_REASON_CODES.get(screen, "PHONE_NUMBER_VISIBLE_IN_PROHIBITED_AREA")
         return Decision(
+            severity=config.SEVERITY_HIGH,
             alert=True,
             review_required=False,
             reason_code=reason_code,
             explanation=(
-                f"{len(eligible)} phone number(s) meeting the alert policy detected in a prohibited area "
-                f"({', '.join(sorted({c.location for c in eligible}))}) of a {screen} screen."
+                f"{len(eligible)} phone number(s) meeting the policy detected in a prohibited area "
+                f"({', '.join(sorted({c.location for c in eligible}))}) of a {screen} screen (high severity)."
             ),
             triggering_candidate_ids=[c.candidate_id for c in eligible],
             uncertainties=uncertainties,
@@ -142,6 +184,7 @@ def decide(
 
     if in_prohibited:
         return Decision(
+            severity=config.SEVERITY_MEDIUM,
             alert=False,
             review_required=True,
             reason_code="UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA",
@@ -154,6 +197,7 @@ def decide(
         )
 
     return Decision(
+        severity=config.SEVERITY_NONE,
         alert=False,
         review_required=config.REVIEW_ON_CANDIDATE_OUTSIDE_PROHIBITED_AREA,
         reason_code="PHONE_NUMBER_OUTSIDE_PROHIBITED_AREA",

@@ -51,6 +51,7 @@ def test_reference_screenshot(filename, expected, tmp_path):
     assert result["ocr"]["success"] is True
     assert result["screen_classification"]["type"] == expected["screen_type"]
     assert result["phone_detection"]["candidate_count"] >= expected.get("min_candidates", 0)
+    assert result["decision"]["severity"] == expected.get("severity", "HIGH" if expected["alert"] else "NONE")
     assert result["decision"]["alert"] is expected["alert"]
     assert result["decision"]["review_required"] is expected.get("review_required", False)
     if "candidate_locations" in expected:

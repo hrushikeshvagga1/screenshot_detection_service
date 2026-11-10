@@ -101,7 +101,7 @@ def format_summary(result: Dict[str, object], candidates: Sequence[PhoneCandidat
             f"ocr_conf={c.ocr_confidence:.2f}"
         )
     lines.append(
-        f"Decision       : alert={dec['alert']} review_required={dec['review_required']} "
+        f"Decision       : severity={dec.get('severity')} alert={dec['alert']} review_required={dec['review_required']} "
         f"reason={dec['reason_code']}"
     )
     lines.append(f"    {dec['explanation']}")

@@ -48,6 +48,7 @@ class BatchStore:
         self.results.create_index([("batchId", ASCENDING), ("itemId", ASCENDING)], unique=True)
         self.results.create_index([("deviceId", ASCENDING), ("processedAt", ASCENDING)])
         self.results.create_index([("analysis.alert", ASCENDING), ("processedAt", ASCENDING)])
+        self.results.create_index([("analysis.severity", ASCENDING), ("processedAt", ASCENDING)])
 
     def requeue_stale_processing(self) -> int:
         """Reset batches stuck in PROCESSING (worker crash / Cloud Run restart)."""
@@ -172,6 +173,7 @@ def summarize_result(full: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "screenType": sc.get("type"),
         "screenConfidence": sc.get("confidence"),
+        "severity": dec.get("severity"),
         "alert": dec.get("alert"),
         "reviewRequired": dec.get("review_required"),
         "reasonCode": dec.get("reason_code"),

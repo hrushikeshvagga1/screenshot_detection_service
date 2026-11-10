@@ -3,7 +3,7 @@
 A local, rule-based Python POC that analyzes **one** WhatsApp screenshot and reports:
 
 1. whether a phone number is visible,
-2. which WhatsApp screen it is (`CHATS_LIST`, `CHAT_DETAIL`, `CONTACT_INFO`, `SEND_CONTACT`, or `UNKNOWN`),
+2. which WhatsApp screen it is (`CHATS_LIST`, `CHAT_DETAIL`, `CONTACT_INFO`, `SEND_CONTACT`, `LINK_DEVICE_QR`, `LINK_DEVICE_CODE`, or `UNKNOWN`),
 3. where each detected number appears on that screen,
 4. whether the screenshot should raise an alert or needs manual review, and
 5. the evidence behind each decision.
@@ -143,7 +143,8 @@ phone_detection
     location / location_detail   e.g. CONTACT_ROW / ROW_TITLE
     bbox (pixels) and bbox_normalized (fractions of width/height)
 decision
-  alert              true = screenshot should be investigated (not proof of a violation)
+  severity           CRITICAL | HIGH | MEDIUM | LOW | NONE (primary policy field for integrations)
+  alert              true when severity is CRITICAL or HIGH (backward compatible)
   review_required    true = automated result is uncertain; a human should look
   reason_code, explanation, triggering_candidate_ids, uncertainties
 ocr
@@ -154,11 +155,22 @@ ocr
 The `text` and `normalized_number` fields contain personal information. They are included only for
 local POC debugging. Remove or hash them before using results anywhere else.
 
+### Severity policy
+
+| Severity | When |
+|----------|------|
+| **CRITICAL** | `LINK_DEVICE_QR`, `LINK_DEVICE_CODE`, or `CONTACT_INFO` (even with no phone visible) |
+| **HIGH** | Valid phone in a prohibited area on `CHATS_LIST`, `CHAT_DETAIL`, or `SEND_CONTACT` |
+| **MEDIUM** | Phone in prohibited area but uncertain (invalid / low OCR confidence) |
+| **LOW** | Phone detected on `UNKNOWN` screen |
+| **NONE** | No policy match (no phone, or phone outside prohibited areas) |
+
 ### Reason codes
 
 | Code | alert | review |
 |------|-------|--------|
-| `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` / `..._IN_CHAT_MESSAGE` / `..._IN_CHAT_HEADER` / `..._IN_CHAT_DETAIL` (mixed) / `..._IN_CONTACT_INFO` / `..._IN_SEND_CONTACT` | true | false |
+| `SENSITIVE_SCREEN_LINK_DEVICE_QR` / `SENSITIVE_SCREEN_LINK_DEVICE_CODE` / `SENSITIVE_SCREEN_CONTACT_INFO` | true | false |
+| `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` / `..._IN_CHAT_MESSAGE` / `..._IN_CHAT_HEADER` / `..._IN_CHAT_DETAIL` (mixed) / `..._IN_SEND_CONTACT` | true | false |
 | `UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA` (invalid number or low OCR confidence) | false | true |
 | `PHONE_NUMBER_ON_UNKNOWN_SCREEN` | false | true |
 | `PHONE_NUMBER_OUTSIDE_PROHIBITED_AREA` | false | configurable (false) |

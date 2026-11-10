@@ -20,8 +20,10 @@ CHATS_LIST = "CHATS_LIST"
 CHAT_DETAIL = "CHAT_DETAIL"
 CONTACT_INFO = "CONTACT_INFO"
 SEND_CONTACT = "SEND_CONTACT"
+LINK_DEVICE_QR = "LINK_DEVICE_QR"
+LINK_DEVICE_CODE = "LINK_DEVICE_CODE"
 UNKNOWN = "UNKNOWN"
-SCREEN_TYPES = (CHATS_LIST, CHAT_DETAIL, CONTACT_INFO, SEND_CONTACT)
+SCREEN_TYPES = (CHATS_LIST, CHAT_DETAIL, CONTACT_INFO, SEND_CONTACT, LINK_DEVICE_QR, LINK_DEVICE_CODE)
 
 LOC_TOP_HEADER = "TOP_HEADER"
 LOC_CONTACT_ROW = "CONTACT_ROW"
@@ -107,8 +109,23 @@ def _is_timestamp_like(word: OcrWord) -> bool:
     return _is_time(word) or _is_day_or_date(word)
 
 
+def _normalize_match_text(text: str) -> str:
+    cleaned = re.sub(r"[-–—]", " ", text.lower())
+    return f" {cleaned} "
+
+
 def _contains_phrase(text: str, phrase: str) -> bool:
-    return f" {phrase} " in f" {text} "
+    return _normalize_match_text(phrase) in _normalize_match_text(text)
+
+
+def _band_normalized_text(ctx: _Context, min_y: float, max_y: float) -> str:
+    parts = [row.normalized_text for row in ctx.rows if min_y <= row.norm.center_y <= max_y]
+    return " ".join(parts)
+
+
+def _band_has_keywords(ctx: _Context, keywords: Sequence[str], min_y: float, max_y: float) -> bool:
+    text = _band_normalized_text(ctx, min_y, max_y)
+    return all(f" {kw} " in _normalize_match_text(text) for kw in keywords)
 
 
 def _strength_from_count(count: int, params: Dict) -> float:
@@ -318,6 +335,10 @@ def _f_conversation_header_title(ctx: _Context) -> FeatureResult:
     f = FeatureResult("conversation_header_title", "layout", "Conversation title next to back arrow/avatar in header")
     for row in ctx.rows:
         if _contains_phrase(row.normalized_text, "send contact"):
+            continue
+        if _contains_phrase(row.normalized_text, "linked devices") or _contains_phrase(
+            row.normalized_text, "enter code"
+        ):
             continue
         for w in row.content_words:
             if (
@@ -582,6 +603,135 @@ def _f_in_chat_vcard(ctx: _Context) -> FeatureResult:
     return f
 
 
+def _phrase_row_feature(
+    ctx: _Context,
+    feature_id: str,
+    description: str,
+    phrases: Sequence[str],
+    *,
+    min_y: float = 0.0,
+    max_y: float = 1.0,
+) -> FeatureResult:
+    f = FeatureResult(feature_id, "keyword", description)
+    for row in ctx.rows:
+        if row.norm.center_y < min_y or row.norm.center_y > max_y:
+            continue
+        for phrase in phrases:
+            if _contains_phrase(row.normalized_text, phrase):
+                f.strength = 1.0
+                f.evidence = f"Matched phrase '{phrase}'"
+                f.matched_keywords = [phrase]
+                return f
+    return f
+
+
+def _f_linked_devices_title(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["linked_devices_title"]
+    return _phrase_row_feature(
+        ctx,
+        "linked_devices_title",
+        "Linked devices settings header",
+        p["phrases"],
+        max_y=p["max_y"],
+    )
+
+
+def _f_link_device_cta(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["link_device_cta"]
+    f = FeatureResult("link_device_cta", "keyword", "'Link a device' primary action")
+    for row in ctx.rows:
+        if row.norm.center_y < p["min_y"] or row.norm.center_y > p["max_y"]:
+            continue
+        for phrase in p["phrases"]:
+            if _contains_phrase(row.normalized_text, phrase):
+                f.strength = 1.0
+                f.evidence = f"Matched phrase '{phrase}'"
+                f.matched_keywords = [phrase]
+                return f
+    if _band_has_keywords(ctx, ("link", "device"), p["min_y"], p["max_y"]):
+        f.strength = 1.0
+        f.evidence = "'link' and 'device' found in bottom action area"
+        f.matched_keywords = ["link", "device"]
+    return f
+
+
+def _f_use_other_devices_copy(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["use_other_devices_copy"]
+    f = FeatureResult("use_other_devices_copy", "keyword", "Multi-device linking instructions")
+    for row in ctx.rows:
+        if row.norm.center_y < p["min_y"] or row.norm.center_y > p["max_y"]:
+            continue
+        for phrase in p["phrases"]:
+            if _contains_phrase(row.normalized_text, phrase):
+                f.strength = 1.0
+                f.evidence = f"Matched phrase '{phrase}'"
+                f.matched_keywords = [phrase]
+                return f
+    if _band_has_keywords(ctx, ("whatsapp", "other", "devices"), p["min_y"], p["max_y"]):
+        f.strength = 1.0
+        f.evidence = "Instructions mention WhatsApp on other devices"
+        f.matched_keywords = ["whatsapp", "other", "devices"]
+    return f
+
+
+def _f_scan_qr_prompt(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["scan_qr_prompt"]
+    return _phrase_row_feature(
+        ctx,
+        "scan_qr_prompt",
+        "QR code scanner instructions",
+        p["phrases"],
+        min_y=p["min_y"],
+        max_y=p["max_y"],
+    )
+
+
+def _f_linked_devices_encryption_footer(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["linked_devices_encryption_footer"]
+    return _phrase_row_feature(
+        ctx,
+        "linked_devices_encryption_footer",
+        "Linked-devices end-to-end encryption footer",
+        p["phrases"],
+        min_y=p["min_y"],
+    )
+
+
+def _f_enter_code_title(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["enter_code_title"]
+    return _phrase_row_feature(
+        ctx,
+        "enter_code_title",
+        "Enter code (link with phone number) header",
+        p["phrases"],
+        max_y=p["max_y"],
+    )
+
+
+def _f_link_with_phone_number_copy(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["link_with_phone_number_copy"]
+    return _phrase_row_feature(
+        ctx,
+        "link_with_phone_number_copy",
+        "Instructions mentioning link with phone number",
+        p["phrases"],
+        min_y=p["min_y"],
+        max_y=p["max_y"],
+    )
+
+
+def _f_code_entry_disclaimer(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["code_entry_disclaimer"]
+    return _phrase_row_feature(
+        ctx,
+        "code_entry_disclaimer",
+        "Security disclaimer for code entry",
+        p["phrases"],
+        min_y=p["min_y"],
+        max_y=p["max_y"],
+    )
+
+
 def _f_message_media_bubble(ctx: _Context) -> FeatureResult:
     p = config.FEATURE_PARAMS["message_media_bubble"]
     f = FeatureResult("message_media_bubble", "keyword", "Photo/video/document bubble labels in the chat body")
@@ -621,6 +771,14 @@ FEATURES: Dict[str, Callable[[_Context], FeatureResult]] = {
     "phone_in_chat_header": _f_phone_in_chat_header,
     "in_chat_vcard": _f_in_chat_vcard,
     "message_media_bubble": _f_message_media_bubble,
+    "linked_devices_title": _f_linked_devices_title,
+    "link_device_cta": _f_link_device_cta,
+    "use_other_devices_copy": _f_use_other_devices_copy,
+    "scan_qr_prompt": _f_scan_qr_prompt,
+    "linked_devices_encryption_footer": _f_linked_devices_encryption_footer,
+    "enter_code_title": _f_enter_code_title,
+    "link_with_phone_number_copy": _f_link_with_phone_number_copy,
+    "code_entry_disclaimer": _f_code_entry_disclaimer,
 }
 
 
@@ -777,6 +935,9 @@ def assign_location(candidate: PhoneCandidate, classification: ClassificationRes
 
     if screen == UNKNOWN:
         candidate.location = LOC_UNKNOWN
+        return
+    if screen in (LINK_DEVICE_QR, LINK_DEVICE_CODE):
+        candidate.location = LOC_OTHER
         return
     if y < config.STATUS_BAR_MAX_Y:
         candidate.location, candidate.location_detail = LOC_OTHER, "STATUS_BAR"

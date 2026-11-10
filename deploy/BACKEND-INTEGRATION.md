@@ -252,7 +252,8 @@ One document per **screenshot item** (upsert on `batchId` + `itemId`).
 | `itemId` | `jobId` from ingest item |
 | `deviceId`, `userId` | From batch |
 | `status` | `COMPLETED` or `FAILED` |
-| `analysis.alert` | Boolean — policy alert |
+| `analysis.severity` | `CRITICAL` \| `HIGH` \| `MEDIUM` \| `LOW` \| `NONE` — primary policy field |
+| `analysis.alert` | Boolean — `true` for `CRITICAL` and `HIGH` (backward compatible) |
 | `analysis.reviewRequired` | Manual review |
 | `analysis.reasonCode` | e.g. phone in chat message |
 | `analysis.screenType` | `CHAT_DETAIL`, `CHATS_LIST`, … |

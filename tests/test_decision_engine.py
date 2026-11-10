@@ -5,7 +5,14 @@ from decision_engine import decide
 from phone_detector import detect_phone_numbers
 from screen_classifier import assign_locations, classify_screen
 from tests.helpers import (
-    chat_detail_words, chats_list_words, contact_info_words, make_ocr, phone_words, send_contact_words,
+    chat_detail_words,
+    chats_list_words,
+    contact_info_words,
+    link_device_code_words,
+    link_device_qr_words,
+    make_ocr,
+    phone_words,
+    send_contact_words,
 )
 
 
@@ -19,13 +26,14 @@ def _pipeline(words):
 
 def test_no_candidate_no_alert():
     decision, _, _ = _pipeline(contact_info_words(phone=False))
-    assert decision.alert is False
-    assert decision.review_required is False
-    assert decision.reason_code == "NO_PHONE_NUMBER_DETECTED"
+    assert decision.severity == "CRITICAL"
+    assert decision.alert is True
+    assert decision.reason_code == "SENSITIVE_SCREEN_CONTACT_INFO"
 
 
 def test_chats_list_row_number_alerts():
     decision, candidates, _ = _pipeline(chats_list_words(phone_rows=2))
+    assert decision.severity == "HIGH"
     assert decision.alert is True
     assert decision.review_required is False
     assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW"
@@ -34,12 +42,14 @@ def test_chats_list_row_number_alerts():
 
 def test_contact_info_number_alerts():
     decision, _, _ = _pipeline(contact_info_words())
+    assert decision.severity == "CRITICAL"
     assert decision.alert is True
-    assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_CONTACT_INFO"
+    assert decision.reason_code == "SENSITIVE_SCREEN_CONTACT_INFO"
 
 
 def test_send_contact_number_alerts():
     decision, _, _ = _pipeline(send_contact_words())
+    assert decision.severity == "HIGH"
     assert decision.alert is True
     assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_SEND_CONTACT"
 
@@ -47,6 +57,7 @@ def test_send_contact_number_alerts():
 def test_chat_detail_header_number_alerts():
     words = chat_detail_words(header_text=phone_words(121, 66, h=20), body_phone=False)
     decision, _, _ = _pipeline(words)
+    assert decision.severity == "HIGH"
     assert decision.alert is True
     assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_CHAT_HEADER"
 
@@ -55,6 +66,7 @@ def test_chat_detail_message_number_alerts():
     decision, candidates, _ = _pipeline(chat_detail_words())
     assert len(candidates) == 1
     assert candidates[0].location == "MESSAGE_AREA"
+    assert decision.severity == "HIGH"
     assert decision.alert is True
     assert decision.review_required is False
     assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_CHAT_MESSAGE"
@@ -65,6 +77,7 @@ def test_unknown_screen_with_candidate_requires_review():
              ("Privacy", 88, 280, 70, 18, 0.95)] + phone_words(88, 400)
     decision, _, classification = _pipeline(words)
     assert classification.screen_type == "UNKNOWN"
+    assert decision.severity == "LOW"
     assert decision.alert is False
     assert decision.review_required is True
     assert decision.reason_code == "PHONE_NUMBER_ON_UNKNOWN_SCREEN"
@@ -72,8 +85,11 @@ def test_unknown_screen_with_candidate_requires_review():
 
 
 def test_low_confidence_number_in_prohibited_area_requires_review():
-    decision, candidates, _ = _pipeline(contact_info_words(phone_conf=0.35))
+    words = chat_detail_words()
+    words = [(t, x, y, w, h, 0.35 if t in ("+91", "98765", "43210") else c) for t, x, y, w, h, c in words]
+    decision, candidates, _ = _pipeline(words)
     assert candidates[0].low_ocr_confidence is True
+    assert decision.severity == "MEDIUM"
     assert decision.alert is False
     assert decision.review_required is True
     assert decision.reason_code == "UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA"
@@ -82,15 +98,17 @@ def test_low_confidence_number_in_prohibited_area_requires_review():
 
 def test_low_confidence_policy_is_configurable(monkeypatch):
     monkeypatch.setattr(config, "ALERT_REQUIRES_CONFIDENT_OCR", False)
-    decision, _, _ = _pipeline(contact_info_words(phone_conf=0.35))
+    decision, _, _ = _pipeline(chat_detail_words())
+    assert decision.severity == "HIGH"
     assert decision.alert is True
 
 
 def test_invalid_number_in_prohibited_area_requires_review():
-    words = [w for w in contact_info_words(phone=False) if w[0] != "Rahul"]
-    words += phone_words(120, 214, h=21, parts=("+91", "12345", "1234"))
+    words = chat_detail_words(body_phone=False)
+    words += phone_words(184, 864, parts=("+91", "12345", "1234"))
     decision, candidates, _ = _pipeline(words)
     assert candidates and candidates[0].valid is False
+    assert decision.severity == "MEDIUM"
     assert decision.alert is False
     assert decision.review_required is True
 
@@ -98,6 +116,7 @@ def test_invalid_number_in_prohibited_area_requires_review():
 def test_prohibited_locations_are_configurable(monkeypatch):
     monkeypatch.setitem(config.PROHIBITED_LOCATIONS, "CHAT_DETAIL", ("TOP_HEADER", "MESSAGE_AREA"))
     decision, _, _ = _pipeline(chat_detail_words())
+    assert decision.severity == "HIGH"
     assert decision.alert is True
 
 
@@ -119,6 +138,20 @@ def test_ocr_failure_requires_review():
     assert decision.alert is False
     assert decision.review_required is True
     assert decision.reason_code == "OCR_FAILED"
+
+
+def test_link_device_qr_critical_without_phone():
+    decision, _, classification = _pipeline(link_device_qr_words())
+    assert classification.screen_type == "LINK_DEVICE_QR"
+    assert decision.severity == "CRITICAL"
+    assert decision.alert is True
+
+
+def test_link_device_code_critical_without_phone():
+    decision, _, classification = _pipeline(link_device_code_words())
+    assert classification.screen_type == "LINK_DEVICE_CODE"
+    assert decision.severity == "CRITICAL"
+    assert decision.alert is True
 
 
 @pytest.mark.parametrize("builder", [chats_list_words, chat_detail_words, contact_info_words, send_contact_words])
