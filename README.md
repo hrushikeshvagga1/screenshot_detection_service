@@ -162,7 +162,7 @@ local POC debugging. Remove or hash them before using results anywhere else.
 | **CRITICAL** | `LINK_DEVICE_QR`, `LINK_DEVICE_CODE`, or `CONTACT_INFO` (even with no phone visible) |
 | **HIGH** | Valid phone in a prohibited area on `CHATS_LIST`, `CHAT_DETAIL`, or `SEND_CONTACT` |
 | **MEDIUM** | Phone in prohibited area but uncertain (invalid / low OCR confidence) |
-| **LOW** | Phone detected on `UNKNOWN` screen |
+| **HIGH** | Policy-eligible phone on `UNKNOWN` screen (`PHONE_NUMBER_ON_UNKNOWN_SCREEN`) |
 | **NONE** | No policy match (no phone, or phone outside prohibited areas) |
 
 ### Reason codes
@@ -172,7 +172,7 @@ local POC debugging. Remove or hash them before using results anywhere else.
 | `SENSITIVE_SCREEN_LINK_DEVICE_QR` / `SENSITIVE_SCREEN_LINK_DEVICE_CODE` / `SENSITIVE_SCREEN_CONTACT_INFO` | true | false |
 | `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` / `..._IN_CHAT_MESSAGE` / `..._IN_CHAT_HEADER` / `..._IN_CHAT_DETAIL` (mixed) / `..._IN_SEND_CONTACT` | true | false |
 | `UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA` (invalid number or low OCR confidence) | false | true |
-| `PHONE_NUMBER_ON_UNKNOWN_SCREEN` | false | true |
+| `PHONE_NUMBER_ON_UNKNOWN_SCREEN` | true (eligible number) | false |
 | `PHONE_NUMBER_OUTSIDE_PROHIBITED_AREA` | false | configurable (false) |
 | `NO_PHONE_NUMBER_DETECTED` | false | false |
 | `NO_PHONE_NUMBER_DETECTED_LOW_OCR_QUALITY` | false | true |

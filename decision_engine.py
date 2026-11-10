@@ -146,14 +146,28 @@ def decide(
         )
 
     if screen == UNKNOWN:
+        eligible = [c for c in candidates if _alert_eligible(c)]
+        if eligible:
+            return Decision(
+                severity=config.SEVERITY_HIGH,
+                alert=True,
+                review_required=False,
+                reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
+                explanation=(
+                    f"{len(eligible)} phone number(s) detected on an unrecognized screen "
+                    f"(best guess {classification.best_guess or 'none'})."
+                ),
+                triggering_candidate_ids=[c.candidate_id for c in eligible],
+                uncertainties=uncertainties,
+            )
         return Decision(
-            severity=config.SEVERITY_LOW,
+            severity=config.SEVERITY_MEDIUM,
             alert=False,
             review_required=config.REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE,
             reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
             explanation=(
-                f"{len(candidates)} phone-number candidate(s) found, but the screen type could not be "
-                "determined reliably (low severity)."
+                f"{len(candidates)} phone-number candidate(s) on an unrecognized screen, but none met "
+                "alert policy (validation or OCR confidence)."
             ),
             triggering_candidate_ids=[c.candidate_id for c in candidates],
             uncertainties=uncertainties,

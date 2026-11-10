@@ -72,14 +72,14 @@ def test_chat_detail_message_number_alerts():
     assert decision.reason_code == "PHONE_NUMBER_VISIBLE_IN_CHAT_MESSAGE"
 
 
-def test_unknown_screen_with_candidate_requires_review():
+def test_unknown_screen_with_eligible_candidate_alerts():
     words = [("Settings", 20, 65, 120, 25, 0.95), ("Account", 88, 200, 80, 18, 0.95),
              ("Privacy", 88, 280, 70, 18, 0.95)] + phone_words(88, 400)
     decision, _, classification = _pipeline(words)
     assert classification.screen_type == "UNKNOWN"
-    assert decision.severity == "LOW"
-    assert decision.alert is False
-    assert decision.review_required is True
+    assert decision.severity == "HIGH"
+    assert decision.alert is True
+    assert decision.review_required is False
     assert decision.reason_code == "PHONE_NUMBER_ON_UNKNOWN_SCREEN"
     assert decision.uncertainties
 
