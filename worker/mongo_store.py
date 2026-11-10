@@ -49,6 +49,10 @@ class BatchStore:
         self.results.create_index([("deviceId", ASCENDING), ("processedAt", ASCENDING)])
         self.results.create_index([("analysis.alert", ASCENDING), ("processedAt", ASCENDING)])
         self.results.create_index([("analysis.severity", ASCENDING), ("processedAt", ASCENDING)])
+        self.results.create_index(
+            [("status", ASCENDING), ("analysis.severity", ASCENDING), ("processedAt", ASCENDING)],
+            name="idx_screenshot_results_org_alerts",
+        )
 
     def requeue_stale_processing(self) -> int:
         """Reset batches stuck in PROCESSING (worker crash / Cloud Run restart)."""
