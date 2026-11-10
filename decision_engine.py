@@ -1,7 +1,7 @@
 """Business rules: turn OCR, phone candidates and screen classification into severity decisions.
 
 Severity replaces a single boolean alert for production integrations. ``alert`` is
-kept for backward compatibility: True when severity is CRITICAL or HIGH.
+kept for backward compatibility: True when severity is CRITICAL, HIGH, or MEDIUM.
 """
 
 from __future__ import annotations
@@ -56,7 +56,11 @@ def _alert_eligible(candidate: PhoneCandidate) -> bool:
 
 
 def _severity_to_alert(severity: str) -> bool:
-    return severity in (config.SEVERITY_CRITICAL, config.SEVERITY_HIGH)
+    return severity in (
+        config.SEVERITY_CRITICAL,
+        config.SEVERITY_HIGH,
+        config.SEVERITY_MEDIUM,
+    )
 
 
 def _critical_decision(
@@ -162,7 +166,7 @@ def decide(
             )
         return Decision(
             severity=config.SEVERITY_MEDIUM,
-            alert=False,
+            alert=_severity_to_alert(config.SEVERITY_MEDIUM),
             review_required=config.REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE,
             reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
             explanation=(
@@ -199,7 +203,7 @@ def decide(
     if in_prohibited:
         return Decision(
             severity=config.SEVERITY_MEDIUM,
-            alert=False,
+            alert=_severity_to_alert(config.SEVERITY_MEDIUM),
             review_required=True,
             reason_code="UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA",
             explanation=(

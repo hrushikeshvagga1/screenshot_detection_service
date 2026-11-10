@@ -144,7 +144,7 @@ phone_detection
     bbox (pixels) and bbox_normalized (fractions of width/height)
 decision
   severity           CRITICAL | HIGH | MEDIUM | LOW | NONE (primary policy field for integrations)
-  alert              true when severity is CRITICAL or HIGH (backward compatible)
+  alert              true when severity is CRITICAL, HIGH, or MEDIUM (backward compatible)
   review_required    true = automated result is uncertain; a human should look
   reason_code, explanation, triggering_candidate_ids, uncertainties
 ocr

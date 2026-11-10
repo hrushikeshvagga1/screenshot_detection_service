@@ -90,7 +90,7 @@ def test_low_confidence_number_in_prohibited_area_requires_review():
     decision, candidates, _ = _pipeline(words)
     assert candidates[0].low_ocr_confidence is True
     assert decision.severity == "MEDIUM"
-    assert decision.alert is False
+    assert decision.alert is True
     assert decision.review_required is True
     assert decision.reason_code == "UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA"
     assert any("OCR confidence" in u for u in decision.uncertainties)
@@ -109,7 +109,7 @@ def test_invalid_number_in_prohibited_area_requires_review():
     decision, candidates, _ = _pipeline(words)
     assert candidates and candidates[0].valid is False
     assert decision.severity == "MEDIUM"
-    assert decision.alert is False
+    assert decision.alert is True
     assert decision.review_required is True
 
 
