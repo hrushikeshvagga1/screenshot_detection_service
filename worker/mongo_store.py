@@ -174,14 +174,20 @@ def summarize_result(full: Dict[str, Any]) -> Dict[str, Any]:
     dec = full.get("decision") or {}
     pd = full.get("phone_detection") or {}
     ocr = full.get("ocr") or {}
+    screen_type = sc.get("type")
+    severity = dec.get("severity")
+    candidate_count = pd.get("candidate_count", 0)
+    # Do not surface phone counts on unclassified screens (not part of alert policy).
+    if screen_type == "UNKNOWN" and severity == "NONE":
+        candidate_count = 0
     return {
-        "screenType": sc.get("type"),
+        "screenType": screen_type,
         "screenConfidence": sc.get("confidence"),
-        "severity": dec.get("severity"),
+        "severity": severity,
         "alert": dec.get("alert"),
         "reviewRequired": dec.get("review_required"),
         "reasonCode": dec.get("reason_code"),
-        "candidateCount": pd.get("candidate_count", 0),
+        "candidateCount": candidate_count,
         "ocrReliable": ocr.get("reliable"),
         "ocrSuccess": ocr.get("success"),
     }

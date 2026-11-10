@@ -253,7 +253,7 @@ One document per **screenshot item** (upsert on `batchId` + `itemId`).
 | `deviceId`, `userId` | From batch |
 | `status` | `COMPLETED` or `FAILED` |
 | `analysis.severity` | `CRITICAL` \| `HIGH` \| `MEDIUM` \| `LOW` \| `NONE` — primary policy field |
-| `analysis.alert` | Boolean — `true` for `CRITICAL`, `HIGH`, and `MEDIUM` (backward compatible) |
+| `analysis.alert` | Boolean — `true` for `CRITICAL`, `HIGH`, and `MEDIUM` (`LOW` reserved) |
 | `analysis.reviewRequired` | Manual review |
 | `analysis.reasonCode` | e.g. phone in chat message |
 | `analysis.screenType` | `CHAT_DETAIL`, `CHATS_LIST`, … |
@@ -270,7 +270,11 @@ const results = await this.analysisResultModel
   .lean();
 ```
 
-**Alerts:** filter `analysis.alert === true` or specific `analysis.reasonCode`.
+**Alerts (phase 1):** filter `analysis.alert === true` or `analysis.severity` in `CRITICAL` / `HIGH`.
+- **CRITICAL:** `LINK_DEVICE_QR`, `LINK_DEVICE_CODE`; `CONTACT_INFO` only with eligible phone.
+- **HIGH:** `CHATS_LIST`, `CHAT_DETAIL` with eligible phone in prohibited areas.
+- **MEDIUM:** `SEND_CONTACT` with eligible phone in prohibited areas.
+- **Clear:** `UNKNOWN`, contact info without number, uncertain OCR numbers (for now).
 
 ### Batch document status
 

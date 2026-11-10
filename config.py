@@ -354,10 +354,16 @@ SEVERITY_HIGH = "HIGH"
 SEVERITY_MEDIUM = "MEDIUM"
 SEVERITY_LOW = "LOW"
 SEVERITY_NONE = "NONE"
-# Critical from screen type alone (no phone number required).
-CRITICAL_SCREEN_TYPES = ("LINK_DEVICE_QR", "LINK_DEVICE_CODE", "CONTACT_INFO")
+# Active policy (see decision_engine.py). Other screen types remain classifiable; MEDIUM/LOW reserved.
+CRITICAL_LINK_DEVICE_SCREEN_TYPES = ("LINK_DEVICE_QR", "LINK_DEVICE_CODE")
+# CONTACT_INFO is critical only when a policy-eligible phone is visible (not screen-alone).
+CRITICAL_PHONE_SCREEN_TYPES = ("CONTACT_INFO",)
+# Legacy union for docs/tests that still reference the tuple name.
+CRITICAL_SCREEN_TYPES = CRITICAL_LINK_DEVICE_SCREEN_TYPES + CRITICAL_PHONE_SCREEN_TYPES
 # High when a policy-eligible phone appears in a prohibited area on these screens.
-HIGH_PHONE_SCREEN_TYPES = ("CHATS_LIST", "CHAT_DETAIL", "SEND_CONTACT")
+HIGH_PHONE_SCREEN_TYPES = ("CHATS_LIST", "CHAT_DETAIL")
+# Medium when a policy-eligible phone appears in a prohibited area on these screens.
+MEDIUM_PHONE_SCREEN_TYPES = ("SEND_CONTACT",)
 CRITICAL_SCREEN_REASON_CODES = {
     "LINK_DEVICE_QR": "SENSITIVE_SCREEN_LINK_DEVICE_QR",
     "LINK_DEVICE_CODE": "SENSITIVE_SCREEN_LINK_DEVICE_CODE",
@@ -379,7 +385,8 @@ CHAT_DETAIL_ALERT_REASON_BY_LOCATION = {
 ALERT_REQUIRES_VALID_NUMBER = True
 # If True, candidates below OCR_CONFIDENCE_THRESHOLD are sent to review instead of alerting.
 ALERT_REQUIRES_CONFIDENT_OCR = True
-REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE = True
+# Legacy: unknown screens no longer raise alerts when OCR finds phone numbers.
+REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE = False
 REVIEW_ON_OCR_FAILURE = True
 REVIEW_ON_UNRELIABLE_OCR_WITHOUT_CANDIDATES = True
 REVIEW_ON_CANDIDATE_OUTSIDE_PROHIBITED_AREA = False

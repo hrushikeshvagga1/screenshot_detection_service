@@ -96,7 +96,7 @@ Results:
 | `reference_chats_list.jpg` | `CHATS_LIST` (1.00) | 2 (`CONTACT_ROW` title + preview) | `alert: true`, `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` |
 | `reference_chat_detail.jpg` | `CHAT_DETAIL` (1.00) | 1 (`MESSAGE_AREA`, outgoing bubble) | `alert: true`, `PHONE_NUMBER_VISIBLE_IN_CHAT_MESSAGE` |
 | `reference_contact_info.jpg` | `CONTACT_INFO` (1.00) | 1 (`CONTACT_DETAILS`) | `alert: true`, `PHONE_NUMBER_VISIBLE_IN_CONTACT_INFO` |
-| `reference_send_contact.jpg` | `SEND_CONTACT` (1.00) | 1 (`CONTACT_DETAILS`, share row) | `alert: true`, `PHONE_NUMBER_VISIBLE_IN_SEND_CONTACT` |
+| `reference_send_contact.jpg` | `SEND_CONTACT` (1.00) | 1 (`CONTACT_DETAILS`, share row) | `alert: true`, `MEDIUM`, `PHONE_NUMBER_VISIBLE_IN_SEND_CONTACT` |
 
 The supplied reference files were JPEG data with a `.png` extension; they were renamed to `.jpg`.
 The classifier never looks at file names: the integration test copies each image to a neutral name first.
@@ -144,7 +144,7 @@ phone_detection
     bbox (pixels) and bbox_normalized (fractions of width/height)
 decision
   severity           CRITICAL | HIGH | MEDIUM | LOW | NONE (primary policy field for integrations)
-  alert              true when severity is CRITICAL, HIGH, or MEDIUM (backward compatible)
+  alert              true when severity is CRITICAL, HIGH, or MEDIUM (LOW reserved)
   review_required    true = automated result is uncertain; a human should look
   reason_code, explanation, triggering_candidate_ids, uncertainties
 ocr
@@ -155,25 +155,25 @@ ocr
 The `text` and `normalized_number` fields contain personal information. They are included only for
 local POC debugging. Remove or hash them before using results anywhere else.
 
-### Severity policy
+### Severity policy (phase 1)
 
 | Severity | When |
 |----------|------|
-| **CRITICAL** | `LINK_DEVICE_QR`, `LINK_DEVICE_CODE`, or `CONTACT_INFO` (even with no phone visible) |
-| **HIGH** | Valid phone in a prohibited area on `CHATS_LIST`, `CHAT_DETAIL`, or `SEND_CONTACT` |
-| **MEDIUM** | Phone in prohibited area but uncertain (invalid / low OCR confidence) |
-| **HIGH** | Policy-eligible phone on `UNKNOWN` screen (`PHONE_NUMBER_ON_UNKNOWN_SCREEN`) |
-| **NONE** | No policy match (no phone, or phone outside prohibited areas) |
+| **CRITICAL** | `LINK_DEVICE_QR` or `LINK_DEVICE_CODE` (screen alone), or `CONTACT_INFO` with a policy-eligible phone |
+| **HIGH** | Policy-eligible phone in a prohibited area on `CHATS_LIST` or `CHAT_DETAIL` |
+| **MEDIUM** | Policy-eligible phone in a prohibited area on `SEND_CONTACT` |
+| **LOW** | Reserved for a later phase |
+| **NONE** | Everything else: no phone, `UNKNOWN`, uncertain candidates, phones outside prohibited areas |
 
-### Reason codes
+### Reason codes (active alerts)
 
 | Code | alert | review |
 |------|-------|--------|
-| `SENSITIVE_SCREEN_LINK_DEVICE_QR` / `SENSITIVE_SCREEN_LINK_DEVICE_CODE` / `SENSITIVE_SCREEN_CONTACT_INFO` | true | false |
-| `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` / `..._IN_CHAT_MESSAGE` / `..._IN_CHAT_HEADER` / `..._IN_CHAT_DETAIL` (mixed) / `..._IN_SEND_CONTACT` | true | false |
-| `UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA` (invalid number or low OCR confidence) | false | true |
-| `PHONE_NUMBER_ON_UNKNOWN_SCREEN` | true (eligible number) | false |
-| `PHONE_NUMBER_OUTSIDE_PROHIBITED_AREA` | false | configurable (false) |
+| `SENSITIVE_SCREEN_LINK_DEVICE_QR` / `SENSITIVE_SCREEN_LINK_DEVICE_CODE` | true | false |
+| `SENSITIVE_SCREEN_CONTACT_INFO` | true (eligible phone on contact info) | false |
+| `PHONE_NUMBER_VISIBLE_IN_CHATS_LIST_ROW` / `..._IN_CHAT_MESSAGE` / `..._IN_CHAT_HEADER` / `..._IN_CHAT_DETAIL` (mixed) | true | false |
+| `PHONE_NUMBER_VISIBLE_IN_SEND_CONTACT` | true | false |
+| `UNKNOWN_SCREEN_NOT_IN_POLICY` / `SCREEN_NOT_IN_ACTIVE_ALERT_POLICY` | false | false |
 | `NO_PHONE_NUMBER_DETECTED` | false | false |
 | `NO_PHONE_NUMBER_DETECTED_LOW_OCR_QUALITY` | false | true |
 | `OCR_FAILED` | false | true |

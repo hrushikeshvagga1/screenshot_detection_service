@@ -25,7 +25,7 @@
   },
   "reference_send_contact.jpg": {
     "screen_type": "SEND_CONTACT",
-    "severity": "HIGH",
+    "severity": "MEDIUM",
     "alert": true,
     "review_required": false,
     "min_candidates": 1,

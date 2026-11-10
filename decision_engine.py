@@ -1,7 +1,12 @@
 """Business rules: turn OCR, phone candidates and screen classification into severity decisions.
 
-Severity replaces a single boolean alert for production integrations. ``alert`` is
-kept for backward compatibility: True when severity is CRITICAL, HIGH, or MEDIUM.
+Active production policy (phase 1):
+  - CRITICAL: ``LINK_DEVICE_QR``, ``LINK_DEVICE_CODE`` (screen alone), ``CONTACT_INFO`` with eligible phone
+  - HIGH: ``CHATS_LIST``, ``CHAT_DETAIL`` with eligible phone in a prohibited area
+  - MEDIUM: ``SEND_CONTACT`` with eligible phone in a prohibited area
+  - ``UNKNOWN``, uncertain candidates, other cases → clear (``NONE``)
+
+``alert`` is True for ``CRITICAL``, ``HIGH``, and ``MEDIUM`` (``LOW`` reserved).
 """
 
 from __future__ import annotations
@@ -55,38 +60,46 @@ def _alert_eligible(candidate: PhoneCandidate) -> bool:
     return True
 
 
-def _severity_to_alert(severity: str) -> bool:
-    return severity in (
-        config.SEVERITY_CRITICAL,
-        config.SEVERITY_HIGH,
-        config.SEVERITY_MEDIUM,
-    )
-
-
 def _critical_decision(
     screen: str,
     classification: ClassificationResult,
     candidates: Sequence[PhoneCandidate],
     uncertainties: List[str],
+    *,
+    phone_required: bool = False,
 ) -> Decision:
     reason = config.CRITICAL_SCREEN_REASON_CODES.get(screen, "SENSITIVE_SCREEN_DETECTED")
-    phone_note = ""
-    ids: List[int] = []
-    if candidates:
-        ids = [c.candidate_id for c in candidates]
-        phone_note = f" Also detected {len(candidates)} phone-number candidate(s)."
+    ids = [c.candidate_id for c in candidates]
+    if phone_required:
+        explanation = (
+            f"Classified as {screen} (confidence {classification.confidence:.2f}) with "
+            f"{len(ids)} policy-eligible phone number(s) visible."
+        )
+    else:
+        phone_note = ""
+        if candidates:
+            phone_note = f" Also detected {len(candidates)} phone-number candidate(s)."
+        explanation = (
+            f"Classified as {screen} (confidence {classification.confidence:.2f}). "
+            f"This screen type is treated as critical.{phone_note}"
+        )
     return Decision(
         severity=config.SEVERITY_CRITICAL,
         alert=True,
         review_required=False,
         reason_code=reason,
-        explanation=(
-            f"Classified as {screen} (confidence {classification.confidence:.2f}). "
-            f"This screen type is treated as critical regardless of visible phone numbers.{phone_note}"
-        ),
+        explanation=explanation,
         triggering_candidate_ids=ids,
         uncertainties=uncertainties,
     )
+
+
+def _eligible_in_prohibited(
+    screen: str, candidates: Sequence[PhoneCandidate]
+) -> List[PhoneCandidate]:
+    prohibited = set(config.PROHIBITED_LOCATIONS.get(screen, ()))
+    in_prohibited = [c for c in candidates if c.location in prohibited]
+    return [c for c in in_prohibited if _alert_eligible(c)]
 
 
 def _collect_uncertainties(
@@ -127,7 +140,7 @@ def decide(
 
     screen = classification.screen_type
 
-    if screen in config.CRITICAL_SCREEN_TYPES and screen != UNKNOWN:
+    if screen in config.CRITICAL_LINK_DEVICE_SCREEN_TYPES:
         return _critical_decision(screen, classification, candidates, uncertainties)
 
     if not candidates:
@@ -150,79 +163,78 @@ def decide(
         )
 
     if screen == UNKNOWN:
-        eligible = [c for c in candidates if _alert_eligible(c)]
+        return Decision(
+            severity=config.SEVERITY_NONE,
+            alert=False,
+            review_required=False,
+            reason_code="UNKNOWN_SCREEN_NOT_IN_POLICY",
+            explanation=(
+                "Screen type does not match a monitored WhatsApp layout in the current alert policy "
+                "(link device, contact info, chats list, chat detail, or send contact)."
+            ),
+            triggering_candidate_ids=[],
+            uncertainties=uncertainties,
+        )
+
+    if screen in config.CRITICAL_PHONE_SCREEN_TYPES:
+        eligible = _eligible_in_prohibited(screen, candidates)
         if eligible:
+            return _critical_decision(
+                screen, classification, eligible, uncertainties, phone_required=True
+            )
+
+    if screen in config.HIGH_PHONE_SCREEN_TYPES:
+        eligible = _eligible_in_prohibited(screen, candidates)
+        if eligible:
+            if screen == "CHAT_DETAIL":
+                reason_code = _chat_detail_reason_code(eligible)
+            else:
+                reason_code = config.ALERT_REASON_CODES.get(
+                    screen, "PHONE_NUMBER_VISIBLE_IN_PROHIBITED_AREA"
+                )
             return Decision(
                 severity=config.SEVERITY_HIGH,
                 alert=True,
                 review_required=False,
-                reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
+                reason_code=reason_code,
                 explanation=(
-                    f"{len(eligible)} phone number(s) detected on an unrecognized screen "
-                    f"(best guess {classification.best_guess or 'none'})."
+                    f"{len(eligible)} phone number(s) meeting the policy detected in a prohibited area "
+                    f"({', '.join(sorted({c.location for c in eligible}))}) of a {screen} screen."
                 ),
                 triggering_candidate_ids=[c.candidate_id for c in eligible],
                 uncertainties=uncertainties,
             )
-        return Decision(
-            severity=config.SEVERITY_MEDIUM,
-            alert=_severity_to_alert(config.SEVERITY_MEDIUM),
-            review_required=config.REVIEW_ON_UNKNOWN_SCREEN_WITH_CANDIDATE,
-            reason_code="PHONE_NUMBER_ON_UNKNOWN_SCREEN",
-            explanation=(
-                f"{len(candidates)} phone-number candidate(s) on an unrecognized screen, but none met "
-                "alert policy (validation or OCR confidence)."
-            ),
-            triggering_candidate_ids=[c.candidate_id for c in candidates],
-            uncertainties=uncertainties,
-        )
+
+    if screen in config.MEDIUM_PHONE_SCREEN_TYPES:
+        eligible = _eligible_in_prohibited(screen, candidates)
+        if eligible:
+            reason_code = config.ALERT_REASON_CODES.get(
+                screen, "PHONE_NUMBER_VISIBLE_IN_PROHIBITED_AREA"
+            )
+            return Decision(
+                severity=config.SEVERITY_MEDIUM,
+                alert=True,
+                review_required=False,
+                reason_code=reason_code,
+                explanation=(
+                    f"{len(eligible)} phone number(s) meeting the policy detected in a prohibited area "
+                    f"({', '.join(sorted({c.location for c in eligible}))}) of a {screen} screen (medium severity)."
+                ),
+                triggering_candidate_ids=[c.candidate_id for c in eligible],
+                uncertainties=uncertainties,
+            )
 
     prohibited = set(config.PROHIBITED_LOCATIONS.get(screen, ()))
-    in_prohibited = [c for c in candidates if c.location in prohibited]
-    eligible = [c for c in in_prohibited if _alert_eligible(c)]
     areas = ", ".join(sorted(prohibited)) or "none"
-
-    if eligible and screen in config.HIGH_PHONE_SCREEN_TYPES:
-        if screen == "CHAT_DETAIL":
-            reason_code = _chat_detail_reason_code(eligible)
-        else:
-            reason_code = config.ALERT_REASON_CODES.get(screen, "PHONE_NUMBER_VISIBLE_IN_PROHIBITED_AREA")
-        return Decision(
-            severity=config.SEVERITY_HIGH,
-            alert=True,
-            review_required=False,
-            reason_code=reason_code,
-            explanation=(
-                f"{len(eligible)} phone number(s) meeting the policy detected in a prohibited area "
-                f"({', '.join(sorted({c.location for c in eligible}))}) of a {screen} screen (high severity)."
-            ),
-            triggering_candidate_ids=[c.candidate_id for c in eligible],
-            uncertainties=uncertainties,
-        )
-
-    if in_prohibited:
-        return Decision(
-            severity=config.SEVERITY_MEDIUM,
-            alert=_severity_to_alert(config.SEVERITY_MEDIUM),
-            review_required=True,
-            reason_code="UNCERTAIN_PHONE_NUMBER_IN_PROHIBITED_AREA",
-            explanation=(
-                f"{len(in_prohibited)} phone-number candidate(s) found in a prohibited area of a {screen} "
-                "screen, but they failed validation or had low OCR confidence. Manual review is required."
-            ),
-            triggering_candidate_ids=[c.candidate_id for c in in_prohibited],
-            uncertainties=uncertainties,
-        )
-
     return Decision(
         severity=config.SEVERITY_NONE,
         alert=False,
-        review_required=config.REVIEW_ON_CANDIDATE_OUTSIDE_PROHIBITED_AREA,
-        reason_code="PHONE_NUMBER_OUTSIDE_PROHIBITED_AREA",
+        review_required=False,
+        reason_code="SCREEN_NOT_IN_ACTIVE_ALERT_POLICY",
         explanation=(
-            f"{len(candidates)} phone-number candidate(s) found on a {screen} screen, but none are in a "
-            f"prohibited area ({areas}). Locations: "
-            f"{', '.join(sorted({c.location for c in candidates}))}."
+            f"Classified as {screen} with {len(candidates)} phone-number candidate(s), but this screen "
+            f"is not in the active CRITICAL/HIGH policy yet (prohibited areas: {areas})."
         ),
+        triggering_candidate_ids=[],
         uncertainties=uncertainties,
     )
