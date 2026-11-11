@@ -7,6 +7,7 @@ from screen_classifier import assign_locations, classify_screen
 from tests.helpers import (
     chat_detail_words,
     chats_list_words,
+    business_contact_info_words,
     contact_info_words,
     link_device_code_words,
     link_device_qr_words,
@@ -42,6 +43,13 @@ def test_chats_list_row_number_alerts():
 
 def test_contact_info_number_alerts():
     decision, _, _ = _pipeline(contact_info_words())
+    assert decision.severity == "CRITICAL"
+    assert decision.alert is True
+    assert decision.reason_code == "SENSITIVE_SCREEN_CONTACT_INFO"
+
+
+def test_business_contact_info_number_alerts_critical():
+    decision, _, _ = _pipeline(business_contact_info_words())
     assert decision.severity == "CRITICAL"
     assert decision.alert is True
     assert decision.reason_code == "SENSITIVE_SCREEN_CONTACT_INFO"

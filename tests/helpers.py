@@ -103,6 +103,30 @@ def contact_info_words(phone: bool = True, phone_conf: float = 0.94) -> List[Wor
     return words
 
 
+def business_contact_info_words(phone: bool = True) -> List[Word]:
+    """WhatsApp Business contact profile (Share/Search, phone row, Business Account banner)."""
+    words: List[Word] = [
+        ("Acolead", 177, 318, 90, 28, 0.95),
+        ("Stage", 160, 352, 70, 24, 0.95),
+        ("Share", 177, 466, 50, 14, 0.95),
+        ("Search", 283, 466, 55, 14, 0.95),
+        ("Business", 88, 668, 72, 18, 0.95),
+        ("Account", 165, 668, 70, 18, 0.95),
+        ("This", 30, 696, 38, 14, 0.94),
+        ("account", 72, 696, 62, 14, 0.94),
+        ("uses", 138, 696, 38, 14, 0.94),
+        ("WhatsApp", 180, 696, 88, 14, 0.94),
+        ("Business", 272, 696, 72, 14, 0.94),
+        ("Notifications", 88, 768, 113, 17, 0.95),
+        ("Media", 88, 840, 54, 16, 0.96),
+        ("visibility", 148, 840, 73, 20, 0.96),
+        ("Security", 88, 912, 72, 18, 0.95),
+    ]
+    if phone:
+        words += phone_words(120, 533, h=18)
+    return words
+
+
 def link_device_qr_words() -> List[Word]:
     return [
       ("Linked", 95, 66, 72, 22, 0.94),

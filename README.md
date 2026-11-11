@@ -220,7 +220,7 @@ Sixteen named features are computed from OCR words that have confidence ≥ 0.50
 |--------|-------------------|
 | `CHATS_LIST` | `WhatsApp` title top-left (2.0), search bar "Ask Meta AI or Search" (1.5), filter chips All/Unread/Favourites/Groups (2.0), bottom tabs Chats/Updates/Communities/Calls (2.0), conversation rows with a title at x≈0.12–0.35 and a right-aligned timestamp (3.0), phone number used as row title (0.5), "Your personal messages are end-to-end encrypted" footer (0.5) |
 | `CHAT_DETAIL` | "Message" composer at the bottom (3.0), title right of avatar in header (1.0), centered date separators such as Today/Yesterday/weekday (1.5), in-bubble timestamps (2.5), "Missed voice call / Tap to call back" bubbles (0.5) |
-| `CONTACT_INFO` | section labels such as Media, links and docs / Manage storage / Notifications / Encryption / Disappearing messages (3.5), spaced action-button row Call/Video/Save/Pay/Search (2.5), large centered profile title (relative to the median text height) (2.0), phone number as that title (1.0) |
+| `CONTACT_INFO` | section labels (consumer + **WhatsApp Business**: Business Account, uses WhatsApp Business, Security, …) (3.5), action buttons Call/Video/Save/Pay/**Share**/Search (2.5), centered profile title (2.0), phone in header title (1.0) or in the contact-detail row below actions (1.0) |
 | `SEND_CONTACT` | **Send contact** header (4.0), **Mobile** / Home / Work line-type label beside a selectable number (2.5), phone row with that label (1.5), contact name row under the header (1.0) |
 
 Penalties (counter-evidence): a composer lowers `CHATS_LIST` and `CONTACT_INFO`; conversation rows lower

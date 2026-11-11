@@ -469,6 +469,28 @@ def _f_phone_in_profile_header(ctx: _Context) -> FeatureResult:
     return f
 
 
+def _f_phone_in_contact_detail_row(ctx: _Context) -> FeatureResult:
+    p = config.FEATURE_PARAMS["phone_in_contact_detail_row"]
+    f = FeatureResult(
+        "phone_in_contact_detail_row",
+        "layout",
+        "Phone number in the contact-info list row (common on WhatsApp Business profiles)",
+    )
+    hits = [
+        c
+        for c in ctx.candidates
+        if p["min_y"] <= c.norm.center_y <= p["max_y"]
+    ]
+    f.strength = _strength_from_count(len(hits), p)
+    if f.detected:
+        f.evidence = (
+            f"{len(hits)} phone number(s) in the contact-detail band "
+            f"(y {p['min_y']:.2f}–{p['max_y']:.2f})"
+        )
+        f.anchors["contact_phone_row_y"] = max(c.norm.center_y for c in hits)
+    return f
+
+
 def _f_send_contact_header(ctx: _Context) -> FeatureResult:
     p = config.FEATURE_PARAMS["send_contact_header"]
     f = FeatureResult("send_contact_header", "keyword", "Send-contact picker title in the top header")
@@ -764,6 +786,7 @@ FEATURES: Dict[str, Callable[[_Context], FeatureResult]] = {
     "profile_action_buttons": _f_profile_action_buttons,
     "centered_profile_header": _f_centered_profile_header,
     "phone_in_profile_header": _f_phone_in_profile_header,
+    "phone_in_contact_detail_row": _f_phone_in_contact_detail_row,
     "send_contact_header": _f_send_contact_header,
     "mobile_type_label": _f_mobile_type_label,
     "share_contact_name_row": _f_share_contact_name_row,
@@ -978,7 +1001,11 @@ def assign_location(candidate: PhoneCandidate, classification: ClassificationRes
             if candidate.location_detail is None and _mobile_label_below(candidate, ocr):
                 candidate.location_detail = "IN_CHAT_VCARD"
     elif screen == CONTACT_INFO:
-        details_max = anchors.get("media_label_top_y", rules["details_max_y"])
+        details_max = max(
+            anchors.get("media_label_top_y", rules["details_max_y"]),
+            anchors.get("contact_phone_row_y", 0.0) + 0.02,
+            rules["details_max_y"],
+        )
         if y <= rules["header_max_y"]:
             candidate.location = LOC_TOP_HEADER
         elif y < details_max:

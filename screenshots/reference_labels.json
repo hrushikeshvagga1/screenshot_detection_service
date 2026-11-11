@@ -23,6 +23,14 @@
     "min_candidates": 1,
     "candidate_locations": ["CONTACT_DETAILS"]
   },
+  "reference_contact_info_business.webp": {
+    "screen_type": "CONTACT_INFO",
+    "severity": "CRITICAL",
+    "alert": true,
+    "review_required": false,
+    "min_candidates": 1,
+    "candidate_locations": ["CONTACT_DETAILS"]
+  },
   "reference_send_contact.jpg": {
     "screen_type": "SEND_CONTACT",
     "severity": "MEDIUM",

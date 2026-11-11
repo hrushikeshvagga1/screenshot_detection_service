@@ -8,6 +8,7 @@ from screen_classifier import (
     assign_locations, classify_screen,
 )
 from tests.helpers import (
+    business_contact_info_words,
     chat_detail_words, chats_list_words, contact_info_words, link_device_code_words, link_device_qr_words,
     make_ocr, phone_words, send_contact_words,
 )
@@ -59,11 +60,17 @@ def test_send_contact_classified(scale_to):
 def test_contact_info_classified(scale_to):
     result, candidates = _run(contact_info_words(), scale_to)
     assert result.screen_type == CONTACT_INFO
-    assert "media links and docs" in result.recognized_keywords
-    assert {"profile_action_buttons", "centered_profile_header", "phone_in_profile_header"} <= set(
+
+
+def test_business_contact_info_classified():
+    result, candidates = _run(business_contact_info_words())
+    assert result.screen_type == CONTACT_INFO
+    assert result.confidence >= config.SCREEN_CONFIDENCE_THRESHOLD
+    assert candidates and candidates[0].location == LOC_CONTACT_DETAILS
+    assert "business account" in result.recognized_keywords
+    assert {"profile_action_buttons", "centered_profile_header", "phone_in_contact_detail_row"} <= set(
         result.layout_patterns
     )
-    assert [c.location for c in candidates] == [LOC_CONTACT_DETAILS]
 
 
 def test_chat_detail_number_in_header_labelled_top_header():

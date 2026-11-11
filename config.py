@@ -102,6 +102,7 @@ SCREEN_FEATURE_WEIGHTS = {
         "profile_action_buttons": 2.5,
         "centered_profile_header": 2.0,
         "phone_in_profile_header": 1.0,
+        "phone_in_contact_detail_row": 1.0,
     },
     "SEND_CONTACT": {
         "send_contact_header": 4.0,
@@ -229,13 +230,15 @@ FEATURE_PARAMS = {
             "custom notifications", "about and phone number", "groups in common",
             "add to favourites", "add to favorites", "chat theme", "advanced chat privacy",
             "view in address book", "kept messages",
+            "business account", "this account uses whatsapp business",
+            "account uses whatsapp business", "uses whatsapp business",
         ),
         # Single-word labels must be the only content of their row.
-        "single_word_labels": ("notifications", "encryption", "block", "report"),
+        "single_word_labels": ("notifications", "encryption", "security", "block", "report"),
         "min_count": 2, "target_count": 4,
     },
     "profile_action_buttons": {
-        "keywords": ("call", "video", "voice", "audio", "save", "pay", "search", "add"),
+        "keywords": ("call", "video", "voice", "audio", "save", "pay", "search", "share", "add"),
         "min_y": 0.12, "max_y": 0.55, "row_y_tolerance": 0.015,
         "min_x_spacing": 0.12, "min_count": 2, "target_count": 3,
     },
@@ -244,6 +247,12 @@ FEATURE_PARAMS = {
         "min_height_ratio": 1.25,  # row height vs. median word height
     },
     "phone_in_profile_header": {"min_y": 0.10, "max_y": 0.40, "max_center_offset": 0.12},
+    "phone_in_contact_detail_row": {
+        "min_y": 0.44,
+        "max_y": 0.66,
+        "min_count": 1,
+        "target_count": 1,
+    },
     "send_contact_header": {
         "phrases": ("send contact",),
         "max_y": 0.15,
@@ -326,7 +335,8 @@ LOCATION_RULES = {
     },
     "CONTACT_INFO": {
         "header_max_y": 0.10,
-        "details_max_y": 0.40,           # fallback when no "Media, links and docs" anchor
+        # Consumer contact: phone/name in header; Business contact: phone row sits below Share/Search (~0.52).
+        "details_max_y": 0.58,
     },
     "SEND_CONTACT": {
         "header_max_y": 0.12,
